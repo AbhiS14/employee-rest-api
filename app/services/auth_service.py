@@ -24,19 +24,31 @@ class AuthService:
             password_hash=User.hash_password(password),
             role=role,
         )
-        self._repo.create(user)
+
+        # 🔥 IMPORTANT: use add(), not create()
+        self._repo.add(user)
+
         return user.to_dict()
 
     def login(self, username: str, password: str) -> Optional[dict]:
         user = self._repo.get_by_field("username", username)
-        if user is None or not user.verify_password(password):
+
+        if user is None:
+            return None
+
+        if not user.verify_password(password):
             return None
 
         access_token = create_access_token(
             identity=user.id,
-            additional_claims={"role": user.role, "username": user.username},
+            additional_claims={
+                "role": user.role,
+                "username": user.username,
+            },
         )
+
         refresh_token = create_refresh_token(identity=user.id)
+
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
